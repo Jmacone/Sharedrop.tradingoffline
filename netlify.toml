@@ -1,0 +1,11 @@
+[build]
+  command = "echo \"No build step required\""
+  publish = "public"
+
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[functions]
+  directory = "netlify/functions"
