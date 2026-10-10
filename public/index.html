@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#071a2e">
+<link rel="manifest" href="manifest.webmanifest">
+<title>ShareDrop Digital OS v5.1</title>
+<style>
+  :root {
+    --primary: #0ea5e9;
+    --secondary: #6366f1;
+    --accent: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --dark: #0f172a;
+    --light: #f8fafc;
+    --card: #1e293b;
+    --card-hover: #24324a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--dark);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 250px; background: var(--card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100;
+    transition: transform .25s ease;
+  }
+  .sidebar-header { padding: 20px 18px 14px; border-bottom: 1px solid var(--border); }
+  .sidebar-header h1 { font-size: 1.25rem; letter-spacing: .02em; }
+  .sidebar-header p { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+  .nav { flex: 1; overflow-y: auto; padding: 10px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 2px;
+    border-radius: 8px; font-size: .88rem; color: var(--muted); transition: background .15s, color .15s;
+  }
+  .nav-item:hover { background: var(--card-hover); color: var(--text); }
+  .nav-item.active { background: linear-gradient(90deg, rgba(14,165,233,.18), transparent); color: var(--primary); font-weight: 600; border-left: 3px solid var(--primary); padding-left: 9px; }
+  .sidebar-footer { padding: 14px 18px; border-top: 1px solid var(--border); font-size: .78rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; box-shadow: 0 0 6px var(--accent); }
+  .status-dot.off { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+  /* Main */
+  .main { flex: 1; margin-left: 250px; display: flex; flex-direction: column; min-height: 100vh; }
+  header {
+    display: flex; align-items: center; justify-content: space-between; padding: 16px 26px;
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(15,23,42,.92); backdrop-filter: blur(6px); z-index: 50;
+  }
+  header h2 { font-size: 1.15rem; font-weight: 600; }
+  .header-actions { display: flex; align-items: center; gap: 14px; }
+  .status { font-size: .78rem; padding: 4px 10px; border-radius: 20px; }
+  .status.online { color: var(--accent); background: rgba(16,185,129,.12); }
+  .status.offline { color: var(--danger); background: rgba(239,68,68,.12); }
+  .icon { background: none; border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 10px; display: none; }
+  .content { padding: 22px 26px 60px; flex: 1; }
+
+  .screen { display: none; animation: fadein .2s ease; }
+  .screen.active { display: block; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity:1; transform: translateY(0);} }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap: 14px; margin-bottom: 22px; }
+  .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .kpi-card .label { font-size: .75rem; color: var(--muted); margin-bottom: 6px; }
+  .kpi-card .value { font-size: 1.5rem; font-weight: 700; }
+  .kpi-card .delta { font-size: .72rem; margin-top: 4px; }
+  .delta.up { color: var(--accent); }
+  .delta.down { color: var(--danger); }
+
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-bottom: 18px; }
+  .panel-title { font-size: .95rem; font-weight: 600; margin-bottom: 14px; display:flex; align-items:center; justify-content:space-between; }
+  .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; }
+  td { padding: 9px 10px; border-bottom: 1px solid rgba(51,65,85,.5); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .badge { padding: 3px 9px; border-radius: 20px; font-size: .7rem; font-weight: 600; white-space: nowrap; }
+  .badge.pending { background: rgba(245,158,11,.15); color: var(--warn); }
+  .badge.assigned { background: rgba(99,102,241,.15); color: var(--secondary); }
+  .badge.pickedup, .badge.enroute { background: rgba(14,165,233,.15); color: var(--primary); }
+  .badge.delivered, .badge.verified, .badge.active { background: rgba(16,185,129,.15); color: var(--accent); }
+  .badge.expired, .badge.failed { background: rgba(239,68,68,.15); color: var(--danger); }
+
+  .btn { border: none; border-radius: 8px; padding: 8px 14px; font-size: .82rem; font-weight: 600; color: white; background: var(--primary); }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: var(--card-hover); color: var(--text); border: 1px solid var(--border); }
+  .btn.danger { background: var(--danger); }
+  .btn.small { padding: 4px 9px; font-size: .72rem; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  input, select, textarea {
+    background: var(--dark); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 10px; font-size: .84rem; font-family: inherit;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  label { font-size: .75rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  .field { margin-bottom: 12px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 300; padding: 20px; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto; }
+  .modal h3 { margin-bottom: 16px; font-size: 1rem; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+  .log-feed { max-height: 220px; overflow-y: auto; font-size: .78rem; color: var(--muted); }
+  .log-feed div { padding: 5px 0; border-bottom: 1px dashed rgba(51,65,85,.4); }
+  .log-feed span.t { color: var(--primary); margin-right: 6px; }
+
+  .dispatch-card { background: var(--dark); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .dispatch-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-track { height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width .3s; }
+  .stage-labels { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); }
+  .stage-labels span.done { color: var(--accent); }
+
+  .quiz-q { margin-bottom: 16px; padding: 12px; background: var(--dark); border: 1px solid var(--border); border-radius: 8px; }
+  .quiz-q p.qtext { font-size: .86rem; margin-bottom: 8px; }
+  .quiz-opt { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: .82rem; }
+  .mission-card { display: flex; align-items: center; justify-content: space-between; background: var(--dark); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+  .mission-card.done { border-color: var(--accent); }
+
+  .doc-vault-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: var(--dark); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; font-size: .82rem; }
+
+  .peer-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(51,65,85,.4); font-size: .82rem; }
+  .peer-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .peer-dot.away { background: var(--warn); }
+
+  canvas { width: 100%; display: block; }
+
+  .tag { font-size: .7rem; padding: 2px 8px; border-radius: 6px; background: rgba(148,163,184,.12); color: var(--muted); }
+
+  .empty { text-align: center; padding: 30px 10px; color: var(--muted); font-size: .85rem; }
+
+  .toast-wrap { position: fixed; bottom: 20px; right: 20px; z-index: 500; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 10px 16px; border-radius: 8px; font-size: .82rem; box-shadow: 0 8px 20px rgba(0,0,0,.35); animation: slidein .2s ease; }
+  @keyframes slidein { from { transform: translateX(20px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+
+  @media (max-width: 840px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .icon { display: inline-block; }
+    .field-row { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h1>⬡ ShareDrop</h1>
+      <p>Digital OS v5.1</p>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-item active" data-screen="dashboard">📊 Dashboard</div>
+      <div class="nav-item" data-screen="orders">📦 Orders</div>
+      <div class="nav-item" data-screen="dispatch">🚚 Dispatch</div>
+      <div class="nav-item" data-screen="driving">🚗 Driving School</div>
+      <div class="nav-item" data-screen="enrollment">📋 Enrollment</div>
+      <div class="nav-item" data-screen="compliance">🛡️ Compliance</div>
+      <div class="nav-item" data-screen="map">🗺️ Corridor Map</div>
+      <div class="nav-item" data-screen="p2p">📡 Agent/P2P</div>
+      <div class="nav-item" data-screen="finance">💰 Finance</div>
+      <div class="nav-item" data-screen="roadmap">🗓️ Roadmap</div>
+    </nav>
+    <div class="sidebar-footer" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div><span class="status-dot" id="sideDot"></span> <span id="sideStatusText">Online</span> · <span id="syncStatus">Synced</span></div>
+      <div id="accountLine" style="display:flex;align-items:center;gap:8px;width:100%;"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <header>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="icon" id="menuToggle">☰</button>
+        <h2 id="screenTitle">Dashboard</h2>
+      </div>
+      <div class="header-actions">
+        <span class="status online" id="connectionStatus">● Online</span>
+      </div>
+    </header>
+    <div class="content" id="content">
+
+      <!-- DASHBOARD -->
+      <section class="screen active" id="screen-dashboard">
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="panel">
+          <div class="panel-title">Executive KPI Dashboard <span class="tag">weekly targets, per blueprint</span></div>
+          <div class="kpi-grid" id="execKpiGrid" style="margin-bottom:0;"></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Revenue Trend (30 days)</div>
+            <canvas id="revenueCanvas" height="180"></canvas>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Live Activity Log</div>
+            <div class="log-feed" id="logFeed"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ORDERS -->
+      <section class="screen" id="screen-orders">
+        <div class="panel">
+          <div class="toolbar">
+            <select id="orderFilter">
+              <option value="">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="ASSIGNED">Assigned</option>
+              <option value="PICKED UP">Picked Up</option>
+              <option value="EN ROUTE">En Route</option>
+              <option value="DELIVERED">Delivered</option>
+            </select>
+            <input type="text" id="orderSearch" placeholder="Search customer or ID…">
+            <button class="btn" id="newOrderBtn">+ New Order</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>ID</th><th>Customer</th><th>Route</th><th>Type</th><th>Value (GYD)</th><th>Driver</th><th>Status</th><th></th></tr></thead>
+              <tbody id="ordersTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- DISPATCH -->
+      <section class="screen" id="screen-dispatch">
+        <div class="panel">
+          <div class="panel-title">Active Dispatch Board</div>
+          <div id="dispatchList"></div>
+        </div>
+      </section>
+
+      <!-- DRIVING SCHOOL -->
+      <section class="screen" id="screen-driving">
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Sekai Written Test <span class="tag" id="quizScoreTag">Not started</span></div>
+            <div id="quizArea"></div>
+            <button class="btn" id="submitQuizBtn" style="margin-top:6px;">Submit Test</button>
+          </div>
+          <div class="panel">
+            <div class="panel-title">5 Practical Missions</div>
+            <div id="missionList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ENROLLMENT -->
+      <section class="screen" id="screen-enrollment">
+        <div class="panel">
+          <div class="toolbar">
+            <button class="btn" id="newEnrollBtn">+ New Enrollment</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>ID</th><th>Name</th><th>Role</th><th>Phone</th><th>Status</th></tr></thead>
+              <tbody id="enrollTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- COMPLIANCE -->
+      <section class="screen" id="screen-compliance">
+        <div class="kpi-grid" id="complianceKpis"></div>
+        <div class="panel">
+          <div class="panel-title">Cross-Border &amp; Regulatory Permit Calendar <span class="tag">60-day expiry warning, per SOP-OPS-003</span></div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Permit / Filing</th><th>Authority</th><th>Expires</th><th>Days Left</th><th>Status</th></tr></thead>
+              <tbody id="permitTbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Document Vault <span class="tag">Dual-PDF escrow protocol (SOP-LEG-002)</span></div>
+          <div id="docVault"></div>
+          <button class="btn small" id="newDocBtn" style="margin-top:10px;">+ Log document pair</button>
+        </div>
+      </section>
+
+      <!-- MAP -->
+      <section class="screen" id="screen-map">
+        <div class="panel">
+          <div class="panel-title">Guyana–Brazil Corridor</div>
+          <svg id="corridorSvg" viewBox="0 0 700 220" style="width:100%;height:auto;"></svg>
+        </div>
+      </section>
+
+      <!-- P2P -->
+      <section class="screen" id="screen-p2p">
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Offline Sync Queue</div>
+            <div id="syncQueueList"></div>
+            <button class="btn" id="flushSyncBtn" style="margin-top:10px;">Flush Queue Now</button>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Bitchat P2P Network</div>
+            <div id="peerList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FINANCE -->
+      <section class="screen" id="screen-finance">
+        <div class="kpi-grid" id="financeKpis"></div>
+
+        <div class="panel">
+          <div class="panel-title">P1–P5 Payment Waterfall <span class="tag">applies to wallet balance now</span></div>
+          <div id="waterfallList"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-title">Accounts Payable <span class="tag">Tiered approval, SOP</span></div>
+            <div class="toolbar"><button class="btn small" id="newExpenseBtn">+ Log expense</button></div>
+            <div id="apList"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Accounts Receivable Aging</div>
+            <div id="arList"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">3-Year GMV Projection</div>
+          <canvas id="financeCanvas" height="200"></canvas>
+        </div>
+      </section>
+
+      <!-- ROADMAP -->
+      <section class="screen" id="screen-roadmap">
+        <div class="panel">
+          <div class="panel-title">30-60-90 Day Execution Matrix</div>
+          <div id="roadmapPhases"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Bottleneck &amp; Risk Map</div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead><tr><th>Risk</th><th>Operational Impact</th><th>Severity</th><th>Mitigation</th></tr></thead>
+              <tbody id="riskTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="orderModalBackdrop">
+  <div class="modal">
+    <h3>New Order</h3>
+    <form id="orderForm">
+      <div class="field"><label>Customer name</label><input required name="customer"></div>
+      <div class="field-row">
+        <div class="field"><label>Pickup</label><input required name="pickup" placeholder="Georgetown"></div>
+        <div class="field"><label>Delivery</label><input required name="delivery" placeholder="Lethem"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Type</label>
+          <select name="type"><option>Standard</option><option>Express</option><option>Same Day</option><option>Scheduled</option></select>
+        </div>
+        <div class="field"><label>Value (GYD)</label><input required name="value" type="number" min="0"></div>
+      </div>
+      <div class="field"><label>Phone</label><input name="phone" placeholder="592-xxx-xxxx"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close-modal="orderModalBackdrop">Cancel</button>
+        <button type="submit" class="btn">Create Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="enrollModalBackdrop">
+  <div class="modal">
+    <h3>New Enrollment</h3>
+    <form id="enrollForm">
+      <div class="field"><label>Full name</label><input required name="name"></div>
+      <div class="field-row">
+        <div class="field"><label>Role</label>
+          <select name="role"><option>Passenger</option><option>Agent</option><option>Driver</option><option>Merchant</option></select>
+        </div>
+        <div class="field"><label>Phone</label><input required name="phone" placeholder="592-xxx-xxxx"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close-modal="enrollModalBackdrop">Cancel</button>
+        <button type="submit" class="btn">Enroll</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="expenseModalBackdrop">
+  <div class="modal">
+    <h3>Log Expense</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">Tier and required approvers are set automatically from the amount, per the AP approval hierarchy.</p>
+    <form id="expenseForm">
+      <div class="field"><label>Description</label><input required name="description" placeholder="Fleet maintenance — Lethem depot"></div>
+      <div class="field"><label>Amount (GYD)</label><input required name="amount" type="number" min="0" id="expenseAmountInput"></div>
+      <div class="field" id="expenseTierPreview" style="font-size:.8rem;color:var(--muted);"></div>
+      <div class="field" id="secondApproverField" style="display:none;">
+        <label>Second approver name (dual sign required at this tier)</label>
+        <input name="secondApprover" placeholder="e.g. Norma Griffith McLean">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close-modal="expenseModalBackdrop">Cancel</button>
+        <button type="submit" class="btn">Submit for approval</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="docModalBackdrop">
+  <div class="modal">
+    <h3>Log Document Pair</h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:12px;">Records that a redacted public PDF and a sealed escrow PDF were produced for this entity — the files themselves stay off-platform per the hand-delivery protocol.</p>
+    <form id="docForm">
+      <div class="field"><label>Entity / person</label><input required name="entity" placeholder="e.g. Jason McLean"></div>
+      <div class="field"><label>Document type</label><input required name="type" placeholder="e.g. Passport, Police Clearance C13"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn secondary" data-close-modal="docModalBackdrop">Cancel</button>
+        <button type="submit" class="btn">Log pair</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- Auth gate: shown until the user signs in, registers, or chooses offline demo mode -->
+<div class="modal-backdrop open" id="authBackdrop" style="z-index:400;">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="authTitle">Sign in to ShareDrop</h3>
+    <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px;">Sign in to sync orders, enrollments, and dispatch activity live with the server.</p>
+    <form id="authForm">
+      <div class="field" id="authNameField" style="display:none;">
+        <label>Full name</label><input name="name" placeholder="Jason McLean">
+      </div>
+      <div class="field"><label>Email</label><input required name="email" type="email" placeholder="you@sharedrop.trading"></div>
+      <div class="field"><label>Password</label><input required name="password" type="password" minlength="8" placeholder="At least 8 characters"></div>
+      <div id="authError" style="color:var(--danger);font-size:.78rem;margin-bottom:8px;display:none;"></div>
+      <div class="modal-actions" style="justify-content:space-between;align-items:center;">
+        <button type="button" class="btn secondary" id="authToggleBtn" style="background:none;border:none;padding:0;">Need an account? Register</button>
+        <button type="submit" class="btn" id="authSubmitBtn">Sign in</button>
+      </div>
+    </form>
+    <div style="text-align:center;margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <button type="button" class="btn secondary small" id="authOfflineBtn">Continue in offline demo mode</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
